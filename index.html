@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Dashboard</title>
+    <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>User Dashboard</h1>
+            <div class="user-info">
+                <span id="currentUser">Welcome</span>
+                <button onclick="logout()" class="logout-btn">Logout</button>
+            </div>
+        </header>
+        
+        <main>
+            <div class="dashboard">
+                <h2>Welcome to Your Dashboard</h2>
+                <div class="user-activity">
+                    <h3>Your Activities</h3>
+                    <div id="activityLog" class="activity-log">
+                        <!-- Activities will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/user.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        // Check if user is logged in
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!isLoggedIn()) {
+                window.location.href = 'login.html';
+            } else {
+                const currentUser = getCurrentUser();
+                if (currentUser && currentUser.username === 'admin') {
+                    window.location.href = 'pages/admin.html';
+                }
+                if (currentUser) {
+                    document.getElementById('currentUser').textContent = `Welcome, ${currentUser.username}`;
+                    loadUserActivities();
+                }
+            }
+        });
+
+        function loadUserActivities() {
+            const currentUser = getCurrentUser();
+            if (!currentUser) return;
+            
+            const activities = getUserActivities(currentUser.username);
+            const activityLog = document.getElementById('activityLog');
+            
+            if (activities && activities.length > 0) {
+                activityLog.innerHTML = activities.map(activity => 
+                    `<div class="activity-item">
+                        <span class="activity-time">${activity.timestamp}</span>
+                        <span class="activity-desc">${activity.description}</span>
+                    </div>`
+                ).join('');
+            } else {
+                activityLog.innerHTML = '<p>No activities recorded yet.</p>';
+            }
+        }
+
+        function logout() {
+            logoutUser();
+            window.location.href = 'login.html';
+        }
+    </script>
+</body>
+</html>

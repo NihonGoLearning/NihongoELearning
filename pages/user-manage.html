@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Activity Management</title>
+    <link rel="stylesheet" href="../css/main.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>User Activity Management</h1>
+            <div class="user-info">
+                <span id="selectedUser">User: Loading...</span>
+                <div>
+                    <button onclick="goBack()" class="back-btn" style="background: #95a5a6; color: white; padding: 0.5rem 1rem; border: none; border-radius: 3px; cursor: pointer; margin-right: 0.5rem;">Back to Admin</button>
+                    <button onclick="logout()" class="logout-btn">Logout</button>
+                </div>
+            </div>
+        </header>
+        
+        <main>
+            <div class="user-management-panel">
+                <div class="user-header">
+                    <h2 id="userTitle">User Activities</h2>
+                    <div class="user-stats">
+                        <span id="activityCount">Loading activities...</span>
+                    </div>
+                </div>
+
+                <div class="activity-filters">
+                    <h3>Activity Filters</h3>
+                    <div class="filter-controls">
+                        <input type="text" id="searchActivity" placeholder="Search activities..." style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 3px; width: 300px;">
+                        <button onclick="clearFilters()" class="clear-filter-btn" style="background: #95a5a6; color: white; padding: 0.5rem 1rem; border: none; border-radius: 3px; cursor: pointer; margin-left: 1rem;">Clear Filters</button>
+                    </div>
+                </div>
+
+                <div class="activities-section">
+                    <h3>Activity Log</h3>
+                    <div id="activityList" class="activity-list">
+                        <!-- Activities will be loaded here -->
+                    </div>
+                </div>
+
+                <div class="user-actions">
+                    <h3>Quick Actions</h3>
+                    <div class="action-buttons">
+                        <button onclick="exportUserData()" class="export-btn" style="background: #27ae60; color: white; padding: 0.5rem 1rem; border: none; border-radius: 3px; cursor: pointer; margin-right: 0.5rem;">Export User Data</button>
+                        <button onclick="deleteUserActivities()" class="delete-activities-btn" style="background: #e67e22; color: white; padding: 0.5rem 1rem; border: none; border-radius: 3px; cursor: pointer; margin-right: 0.5rem;">Delete All Activities</button>
+                        <button onclick="deleteUserAccount()" class="delete-user-btn" style="background: #e74c3c; color: white; padding: 0.5rem 1rem; border: none; border-radius: 3px; cursor: pointer;">Delete User Account</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="../js/user.js"></script>
+    <script src="../js/main.js"></script>
+    <script>
+        let currentUser = null;
+        let allActivities = [];
+
+        // Check if admin is logged in
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!isLoggedIn() || getCurrentUser().username !== 'admin') {
+                window.location.href = '../login.html';
+                return;
+            }
+
+            const selectedUsername = localStorage.getItem('selectedUser');
+            if (!selectedUsername) {
+                showNotification('No user selected', 'error');
+                goBack();
+                return;
+            }
+
+            currentUser = selectedUsername;
+            loadUserActivities();
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            // Search functionality
+            document.getElementById('searchActivity').addEventListener('input', function(e) {
+                filterActivities(e.target.value);
+            });
+        }
+
+        function loadUserActivities() {
+            document.getElementById('selectedUser').textContent = `User: ${currentUser}`;
+            document.getElementById('userTitle').textContent = `Activities for ${currentUser}`;
+
+            const activities = getUserActivities(currentUser);
+            allActivities = activities || [];
+            
+            displayActivities(allActivities);
+            updateActivityStats();
+        }
+
+        function displayActivities(activities) {
+            const activityList = document.getElementById('activityList');
+            
+            if (activities && activities.length > 0) {
+                activityList.innerHTML = activities.map(activity => `
+                    <div class="activity-item" style="padding: 1rem; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 0.5rem; background: white;">
+                        <div class="activity-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <strong class="activity-desc">${activity.description}</strong>
+                            <span class="activity-time" style="color: #666; font-size: 0.9rem;">${activity.timestamp}</span>
+                        </div>
+                    </div>`
+                ).join('');
+            } else {
+                activityList.innerHTML = '<div class="no-activities" style="text-align: center; padding: 2rem; color: #666;">No activities found for this user.</div>';
+            }
+        }
+
+        function filterActivities(searchTerm) {
+            if (!searchTerm) {
+                displayActivities(allActivities);
+                return;
+            }
+
+            const filteredActivities = allActivities.filter(activity =>
+                activity.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                activity.timestamp.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+            
+            displayActivities(filteredActivities);
+        }
+
+        function clearFilters() {
+            document.getElementById('searchActivity').value = '';
+            displayActivities(allActivities);
+        }
+
+        function updateActivityStats() {
+            const activityCount = document.getElementById('activityCount');
+            activityCount.textContent = `${allActivities.length} activities found`;
+        }
+
+        function exportUserData() {
+            if (!allActivities.length) {
+                showNotification('No activities to export', 'warning');
+                return;
+            }
+
+            const userData = {
+                username: currentUser,
+                exportDate: new Date().toLocaleString(),
+                activities: allActivities
+            };
+
+            const dataStr = JSON.stringify(userData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${currentUser}-activities-${new Date().getTime()}.json`;
+            link.click();
+            URL.revokeObjectURL(url);
+
+            showNotification('User data exported successfully', 'success');
+        }
+
+        function deleteUserActivities() {
+            if (!allActivities.length) {
+                showNotification('No activities to delete', 'warning');
+                return;
+            }
+
+            if (confirm(`Are you sure you want to delete ALL activities for user "${currentUser}"? This action cannot be undone.`)) {
+                // Clear activities for this user
+                const allSystemActivities = userManager.loadActivities();
+                const filteredActivities = allSystemActivities.filter(activity => 
+                    activity.username !== currentUser
+                );
+                
+                localStorage.setItem('userActivities', JSON.stringify(filteredActivities));
+                
+                // Record this action
+                userManager.recordActivity('admin', `Deleted all activities for user ${currentUser}`);
+                
+                showNotification('All user activities deleted successfully', 'success');
+                setTimeout(() => {
+                    loadUserActivities(); // Reload the page data
+                }, 1000);
+            }
+        }
+
+        function deleteUserAccount() {
+            if (confirm(`WARNING: This will permanently delete user "${currentUser}" and ALL their data including activities. This action cannot be undone!`)) {
+                if (deleteUser(currentUser)) {
+                    showNotification('User account deleted successfully', 'success');
+                    setTimeout(() => {
+                        goBack();
+                    }, 1500);
+                } else {
+                    showNotification('Failed to delete user account', 'error');
+                }
+            }
+        }
+
+        function goBack() {
+            localStorage.removeItem('selectedUser');
+            window.location.href = 'admin.html';
+        }
+
+        function logout() {
+            logoutUser();
+            localStorage.removeItem('selectedUser');
+            window.location.href = '../login.html';
+        }
+    </script>
+</body>
+</html>

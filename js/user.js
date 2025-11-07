@@ -44,23 +44,46 @@ class UserManager {
         );
     }
 
+///////////**********
     createUser(username, password) {
+        console.log('Creating user:', username); // Debug log
+        
+        // Validate input
+        if (!username || !password) {
+            console.log('Missing username or password');
+            return false;
+        }
+
+        // Check if username already exists
         if (this.users.some(user => user.username === username)) {
+            console.log('Username already exists:', username);
             return false; // Username exists
         }
-        
+
+        // Create new user object
         const newUser = {
-            username,
-            password,
+            username: username.trim(),
+            password: password,
             role: 'user',
             createdAt: new Date().toISOString()
         };
-        
+
+        console.log('New user object:', newUser); // Debug log
+
+        // Add to users array
         this.users.push(newUser);
+
+        // Save to localStorage
         const saved = this.saveUsers();
+        console.log('Save successful:', saved); // Debug log
+
         if (saved) {
             this.recordActivity('system', `User ${username} created`);
+            console.log('User created successfully'); // Debug log
+        } else {
+            console.log('Failed to save user'); // Debug log
         }
+
         return saved;
     }
 
@@ -264,4 +287,5 @@ function clearAllData() {
         console.error('Error clearing all data:', error);
         return false;
     }
+
 }
